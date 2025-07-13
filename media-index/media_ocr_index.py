@@ -176,11 +176,20 @@ def main(input_folder, lang="eng", frame_interval=5):
     index_file = os.path.join(input_folder, "index.json")
     log_file = os.path.join(input_folder, "ocr_log.txt")
 
-    # Resume logic
+    # Resume logic with KeyError protection
     if os.path.exists(index_file):
         with open(index_file, "r", encoding="utf-8") as f:
             index_data = json.load(f)
-        done = { (item["type"], item.get("filename", "")) for item in index_data if item.get("type") != "video" }
+        # Cảnh báo dòng lỗi
+        bad_rows = [i for i, item in enumerate(index_data) if "type" not in item or "filename" not in item]
+        if bad_rows:
+            print(f"⚠️ Warning: {len(bad_rows)} bad rows in index.json! They will be ignored.")
+        # Resume logic an toàn
+        done = {
+            (item.get("type"), item.get("filename", ""))
+            for item in index_data
+            if item.get("type") not in [None, "video"]
+        }
         done_videos = set(item.get("frame_id") for item in index_data if item.get("type") == "video")
         results = index_data
         print(f"🟩 Resume mode: {len(done)} files, {len(done_videos)} video frames done.")
